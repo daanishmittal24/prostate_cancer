@@ -17,7 +17,7 @@ model:
 
 # Data Configuration
 data:
-  data_dir: "/home/Saif/Pratham/ELC/prostate-cancer-grade-assessment"
+  data_dir: "./prostate-cancer-grade-assessment"
   train_csv: "train.csv"
   test_csv: "test.csv"
   train_image_dir: "train_images"
