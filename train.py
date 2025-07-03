@@ -106,12 +106,16 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
     for step, batch in enumerate(pbar):
         images = batch['image'].to(device)
         labels = batch['label'].to(device)
-        masks = batch.get('mask', None)
-        if masks is not None:
-            masks = masks.float().to(device)
-            # Ensure masks have the right shape [batch_size, 1, H, W]
-            if len(masks.shape) == 3:
-                masks = masks.unsqueeze(1)
+        masks = batch['mask'].float().to(device)
+        
+        # Ensure masks have the right shape [batch_size, 1, H, W]
+        if len(masks.shape) == 3:
+            masks = masks.unsqueeze(1)
+        
+        # Check if masks are all zeros (dummy masks) - if so, don't use them for loss
+        has_real_masks = masks.sum(dim=[1, 2, 3]) > 0  # [batch_size]
+        if not has_real_masks.any():
+            masks = None  # No real masks in this batch
         
         # Zero gradients
         optimizer.zero_grad()
@@ -185,12 +189,16 @@ def validate(model, loader, device, epoch, writer, config):
         for step, batch in enumerate(pbar):
             images = batch['image'].to(device)
             labels = batch['label'].to(device)
-            masks = batch.get('mask', None)
-            if masks is not None:
-                masks = masks.float().to(device)
-                # Ensure masks have the right shape [batch_size, 1, H, W]
-                if len(masks.shape) == 3:
-                    masks = masks.unsqueeze(1)
+            masks = batch['mask'].float().to(device)
+            
+            # Ensure masks have the right shape [batch_size, 1, H, W]
+            if len(masks.shape) == 3:
+                masks = masks.unsqueeze(1)
+            
+            # Check if masks are all zeros (dummy masks) - if so, don't use them for loss
+            has_real_masks = masks.sum(dim=[1, 2, 3]) > 0  # [batch_size]
+            if not has_real_masks.any():
+                masks = None  # No real masks in this batch
             
             # Forward pass
             with autocast(enabled=config['training']['mixed_precision']):
