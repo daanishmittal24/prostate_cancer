@@ -61,7 +61,7 @@ class PANDA_Dataset(Dataset):
             try:
                 with openslide.OpenSlide(img_path) as slide:
                     w, h = slide.dimensions
-            except (openslide.OpenSlideUnsupportedFormatError, FileNotFoundError) as e:
+            except Exception as e:
                 print(f"[WARNING] Skipping {img_path}: {e}")
                 continue
                 
