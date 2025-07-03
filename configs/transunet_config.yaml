@@ -1,0 +1,66 @@
+# TransUNet Configuration for Prostate Cancer Detection
+
+# Model Configuration
+model:
+  img_size: 224
+  patch_size: 16
+  num_classes: 6  # ISUP grades 0-5
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4
+  dropout: 0.1
+  seg_classes: 1  # Binary segmentation
+
+# Data Configuration
+data:
+  data_dir: "./../prostate-cancer-grade-assessment"
+  train_csv: "train.csv"
+  test_csv: "test.csv"
+  train_image_dir: "train_images"
+  mask_dir: "train_label_masks"
+  batch_size: 16  # Reduced for TransUNet (more memory intensive)
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+  patches_per_image: 12  # Reduced for faster training
+
+# Augmentation Configuration
+augmentation:
+  hflip_prob: 0.5
+  vflip_prob: 0.5
+  rotation_range: 15
+  brightness: 0.15
+  contrast: 0.15
+  scale_limit: 0.15
+  shift_limit: 0.15
+
+# Training Configuration
+training:
+  epochs: 25
+  warmup_epochs: 3
+  lr: 1e-4  # Lower learning rate for TransUNet
+  min_lr: 1e-6
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  grad_clip: 1.0
+  mixed_precision: true
+  accumulate_grad_batches: 1
+
+# Logging Configuration
+logging:
+  log_dir: "./logs"
+  experiment_name: "transunet_prostate_cancer"
+  use_wandb: false
+  log_every_n_steps: 50
+  save_top_k: 3
+  monitor: "val_kappa"
+  mode: "max"
+
+# System Configuration
+system:
+  gpus: 4
+  seed: 42
+  deterministic: true
+  benchmark: true
