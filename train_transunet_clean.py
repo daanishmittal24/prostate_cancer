@@ -11,7 +11,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
+try:
+    from torch.amp import autocast
+except ImportError:
+    from torch.cuda.amp import autocast
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import numpy as np
@@ -151,7 +155,7 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
         optimizer.zero_grad()
         
         # Forward pass with mixed precision
-        with autocast(enabled=config['training']['mixed_precision']):
+        with autocast('cuda', enabled=config['training']['mixed_precision']):
             outputs = model(images)
             losses = compute_loss(outputs, labels, masks, device)
             loss = losses['total_loss']
@@ -243,7 +247,7 @@ def validate(model, loader, device, epoch, writer, config):
                 masks = None
             
             # Forward pass
-            with autocast(enabled=config['training']['mixed_precision']):
+            with autocast('cuda', enabled=config['training']['mixed_precision']):
                 outputs = model(images)
                 losses = compute_loss(outputs, labels, masks, device)
                 loss = losses['total_loss']
