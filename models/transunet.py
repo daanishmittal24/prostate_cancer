@@ -304,17 +304,26 @@ def create_transunet(
     Returns:
         TransUNet model
     """
+    # Set default values for parameters not explicitly passed
+    default_params = {
+        'patch_size': 16,
+        'in_chans': 3,
+        'embed_dim': 768,
+        'depth': 12,
+        'num_heads': 12,
+        'mlp_ratio': 4.0,
+        'dropout': 0.1,
+    }
+    
+    # Update defaults with any provided kwargs
+    for key, value in default_params.items():
+        if key not in kwargs:
+            kwargs[key] = value
+    
     model = TransUNet(
         img_size=img_size,
-        patch_size=16,
-        in_chans=3,
         num_classes=num_classes,
         seg_classes=seg_classes,
-        embed_dim=768,
-        depth=12,
-        num_heads=12,
-        mlp_ratio=4.0,
-        dropout=0.1,
         **kwargs
     )
     return model
@@ -323,12 +332,26 @@ def create_transunet(
 # Model size variants
 def create_transunet_small(**kwargs) -> TransUNet:
     """Create small TransUNet model"""
-    return TransUNet(
-        embed_dim=384,
-        depth=6,
-        num_heads=6,
-        **kwargs
-    )
+    # Set defaults for small model
+    small_defaults = {
+        'img_size': 224,
+        'patch_size': 16,
+        'in_chans': 3,
+        'num_classes': 6,
+        'seg_classes': 1,
+        'embed_dim': 384,
+        'depth': 6,
+        'num_heads': 6,
+        'mlp_ratio': 4.0,
+        'dropout': 0.1,
+    }
+    
+    # Update defaults with any provided kwargs
+    for key, value in small_defaults.items():
+        if key not in kwargs:
+            kwargs[key] = value
+    
+    return TransUNet(**kwargs)
 
 
 def create_transunet_base(**kwargs) -> TransUNet:
@@ -338,12 +361,26 @@ def create_transunet_base(**kwargs) -> TransUNet:
 
 def create_transunet_large(**kwargs) -> TransUNet:
     """Create large TransUNet model"""
-    return TransUNet(
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        **kwargs
-    )
+    # Set defaults for large model
+    large_defaults = {
+        'img_size': 224,
+        'patch_size': 16,
+        'in_chans': 3,
+        'num_classes': 6,
+        'seg_classes': 1,
+        'embed_dim': 1024,
+        'depth': 24,
+        'num_heads': 16,
+        'mlp_ratio': 4.0,
+        'dropout': 0.1,
+    }
+    
+    # Update defaults with any provided kwargs
+    for key, value in large_defaults.items():
+        if key not in kwargs:
+            kwargs[key] = value
+    
+    return TransUNet(**kwargs)
 
 
 if __name__ == "__main__":
