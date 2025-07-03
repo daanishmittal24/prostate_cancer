@@ -51,6 +51,7 @@ training:
 # Logging Configuration
 logging:
   log_dir: "./logs"
+  checkpoint_dir: "./checkpoints"
   experiment_name: "transunet_prostate_cancer"
   use_wandb: false
   log_every_n_steps: 50
