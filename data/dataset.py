@@ -59,8 +59,13 @@ class PANDA_Dataset(Dataset):
             img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
             print("Trying to open:", img_path) ######
             try:
-                with openslide.OpenSlide(img_path) as slide:
-                    w, h = slide.dimensions
+                if img_path.lower().endswith('.tiff'):
+                    import rasterio
+                    with rasterio.open(img_path) as src:
+                        w, h = src.width, src.height
+                else:
+                    with openslide.OpenSlide(img_path) as slide:
+                        w, h = slide.dimensions
             except Exception as e:
                 print(f"[WARNING] Skipping {img_path}: {e}")
                 continue
