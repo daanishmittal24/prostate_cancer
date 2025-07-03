@@ -36,9 +36,28 @@ class ViTForProstateCancer(nn.Module):
         self.patch_size = patch_size
         
         # Initialize the base ViT model
-        if pretrained:
-            self.vit = ViTModel.from_pretrained(model_name, add_pooling_layer=False)
-        else:
+        try:
+            if pretrained:
+                self.vit = ViTModel.from_pretrained(model_name, add_pooling_layer=False)
+            else:
+                config = ViTConfig(
+                    image_size=img_size,
+                    patch_size=patch_size,
+                    num_channels=3,
+                    hidden_size=768,
+                    num_hidden_layers=12,
+                    num_attention_heads=12,
+                    intermediate_size=3072,
+                    hidden_dropout_prob=0.1,
+                    attention_probs_dropout_prob=0.1,
+                    initializer_range=0.02,
+                    layer_norm_eps=1e-12,
+                    is_encoder_decoder=False,
+                )
+                self.vit = ViTModel(config, add_pooling_layer=False)
+        except Exception as e:
+            print(f"[WARNING] Failed to load pretrained model {model_name}: {e}")
+            print("[INFO] Falling back to randomly initialized ViT model")
             config = ViTConfig(
                 image_size=img_size,
                 patch_size=patch_size,

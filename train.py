@@ -40,12 +40,16 @@ def create_datasets(config):
     data_cfg = config['data']
     
     # Load CSV files
-    train_df = pd.read_csv(os.path.join(data_cfg['data_dir'], data_cfg['train_csv']))
+    full_df = pd.read_csv(os.path.join(data_cfg['data_dir'], data_cfg['train_csv']))
     
     # Split into train/val (80/20)
-    val_size = int(0.2 * len(train_df))
-    train_df = train_df.iloc[val_size:].reset_index(drop=True)
-    val_df = train_df.iloc[:val_size].reset_index(drop=True)
+    val_size = int(0.2 * len(full_df))
+    train_df = full_df.iloc[val_size:].reset_index(drop=True)
+    val_df = full_df.iloc[:val_size].reset_index(drop=True)
+    
+    print(f"Dataset split: {len(train_df)} train samples, {len(val_df)} validation samples")
+    print(f"Train patches: {len(train_df) * config['data'].get('patches_per_image', 16)}")
+    print(f"Val patches: {len(val_df) * config['data'].get('patches_per_image', 16)}")
     
     # Create datasets
     train_transforms = get_train_transforms(
