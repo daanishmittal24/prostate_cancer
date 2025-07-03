@@ -40,6 +40,15 @@ class PANDA_Dataset(Dataset):
         """
         self.data_dir = data_dir
         self.df = df.reset_index(drop=True)
+        
+        # Clean labels: map 'negative' to '0+0' in gleason_score
+        if 'gleason_score' in self.df.columns:
+            self.df['gleason_score'] = self.df['gleason_score'].apply(lambda x: '0+0' if x == 'negative' else x)
+            # Drop known mislabels (from Kaggle EDA)
+            # Check if row 7273 exists and drop it
+            if 7273 in self.df.index:
+                self.df = self.df.drop([7273])
+        
         self.image_dir = os.path.join(data_dir, image_dir)
         self.mask_dir = os.path.join(data_dir, mask_dir)
         self.transform = transform
