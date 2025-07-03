@@ -1,32 +1,21 @@
-# Core
-numpy>=1.19.5
-pandas>=1.1.5  # Compatible with Python 3.6
-scikit-learn>=0.24.2  # Compatible with pandas 1.1.5
-scikit-image>=0.18.3
-Pillow>=8.1.0
-tqdm>=4.56.0
+torch==1.10.2+cu113
+torchvision==0.11.3+cu113
+transformers==4.11.3
+pandas==1.1.5
+numpy==1.19.5
+scikit-learn==0.24.2
+matplotlib==3.3.4
+tqdm==4.62.3
+opencv-python-headless==4.5.5.62
+Pillow==8.3.2
+scipy==1.5.4
 
-# Deep Learning
-torch==1.10.0+cu113  # Slightly older version for better compatibility
-torchvision==0.11.1+cu113
---find-links https://download.pytorch.org/whl/torch_stable.html
-transformers==4.11.3  # Slightly older version for compatibility
-timm==0.4.12
-
-# Medical Imaging
-openslide-python>=1.1.1
-opencv-python>=4.5.0
-
-# Distributed Training
-torch-optimizer>=0.1.0
-pytorch-lightning==1.4.9  # Version compatible with torch 1.10
-
-# Visualization
-matplotlib>=3.3.4
+# Additional requirements
+albumentations>=0.5.2
+omegaconf>=2.0.6
+pyyaml>=5.4.1
 seaborn>=0.11.1
 tensorboard>=2.4.1
-
-# Utilities
-pyyaml>=5.4.1
-omegaconf>=2.0.6  # Slightly older version for compatibility
-wandb>=0.10.33  # Version compatible with Python 3.6
+wandb>=0.10.33
+timm==0.4.12
+openslide-python>=1.1.1
