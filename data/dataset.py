@@ -58,8 +58,12 @@ class PANDA_Dataset(Dataset):
             img_id = self.df.iloc[idx]['image_id']
             img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
             print("Trying to open:", img_path) ######
-            with openslide.OpenSlide(img_path) as slide:
-                w, h = slide.dimensions
+            try:
+                with openslide.OpenSlide(img_path) as slide:
+                    w, h = slide.dimensions
+            except (openslide.OpenSlideUnsupportedFormatError, FileNotFoundError) as e:
+                print(f"[WARNING] Skipping {img_path}: {e}")
+                continue
                 
             # Calculate number of patches in each dimension
             n_w = (w // self.img_size) - 1
