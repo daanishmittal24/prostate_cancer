@@ -25,6 +25,7 @@ class PANDA_Dataset(Dataset):
         img_size: int = 256,
         patch_size: int = 224,
         scale: int = 1,
+        patches_per_image: int = 16,  # Number of random patches per image
     ):
         """
         Args:
@@ -37,6 +38,7 @@ class PANDA_Dataset(Dataset):
             img_size: Size of the extracted patches
             patch_size: Final size of the patches after transforms
             scale: Scale factor for the WSI
+            patches_per_image: Number of patches to extract per image
         """
         self.data_dir = data_dir
         self.df = df.reset_index(drop=True)
@@ -56,9 +58,10 @@ class PANDA_Dataset(Dataset):
         self.img_size = img_size
         self.patch_size = patch_size
         self.scale = scale
+        self.patches_per_image = patches_per_image
         
-        # Pre-compute valid patch coordinates for each WSI
-        self.patches = self._precompute_patches()
+        # Cache for WSI dimensions (loaded lazily)
+        self._dimensions_cache = {}
         
     def _precompute_patches(self) -> List[Dict]:
         """Pre-compute valid patch coordinates for all WSIs."""
