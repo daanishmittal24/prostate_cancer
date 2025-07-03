@@ -163,18 +163,31 @@ class ViTForProstateCancer(nn.Module):
         # Upsample to input resolution
         seg_logits = self.segmentation_head(patch_embeddings)
         
-        # Calculate losses if labels/masks are provided
+        # Resize segmentation logits to match mask size if masks are provided
+        if masks is not None:
+            target_size = masks.shape[-2:]  # Get H, W from masks
+            seg_logits = F.interpolate(
+                seg_logits, 
+                size=target_size, 
+                mode='bilinear', 
+                align_corners=False
+            )
+        
+        # Calculate losses if labels are provided
         loss = None
-        if labels is not None and masks is not None:
+        if labels is not None:
             # Classification loss
             cls_loss = F.cross_entropy(logits, labels)
             
-            # Segmentation loss (Dice + BCE)
-            seg_loss = self.dice_bce_loss(seg_logits, masks)
-            
-            # Combined loss with weight
-            alpha = 0.7  # Weight for classification loss
-            loss = alpha * cls_loss + (1 - alpha) * seg_loss
+            # Segmentation loss (only if masks are provided)
+            if masks is not None:
+                seg_loss = self.dice_bce_loss(seg_logits, masks)
+                # Combined loss with weight
+                alpha = 0.7  # Weight for classification loss
+                loss = alpha * cls_loss + (1 - alpha) * seg_loss
+            else:
+                # Only classification loss if no masks
+                loss = cls_loss
         
         return {
             'logits': logits,

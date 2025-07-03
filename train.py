@@ -108,7 +108,10 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
         labels = batch['label'].to(device)
         masks = batch.get('mask', None)
         if masks is not None:
-            masks = masks.unsqueeze(1).float().to(device)
+            masks = masks.float().to(device)
+            # Ensure masks have the right shape [batch_size, 1, H, W]
+            if len(masks.shape) == 3:
+                masks = masks.unsqueeze(1)
         
         # Zero gradients
         optimizer.zero_grad()
@@ -184,7 +187,10 @@ def validate(model, loader, device, epoch, writer, config):
             labels = batch['label'].to(device)
             masks = batch.get('mask', None)
             if masks is not None:
-                masks = masks.unsqueeze(1).float().to(device)
+                masks = masks.float().to(device)
+                # Ensure masks have the right shape [batch_size, 1, H, W]
+                if len(masks.shape) == 3:
+                    masks = masks.unsqueeze(1)
             
             # Forward pass
             with autocast(enabled=config['training']['mixed_precision']):
