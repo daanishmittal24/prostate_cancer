@@ -161,19 +161,19 @@ class PANDA_Dataset(Dataset):
         if not self.is_test:
             mask_path = os.path.join(self.mask_dir, f"{img_id}_mask.tiff")
             mask = self._load_mask_region(mask_path, x, y, self.img_size)
+            
+        # If no mask is loaded, create a dummy mask of zeros
+        if mask is None:
+            mask = np.zeros((self.img_size, self.img_size), dtype='float32')
         
         # Get label from dataframe
         label = self.df.iloc[img_idx]['isup_grade']
         
         # Apply transforms
         if self.transform:
-            if mask is not None:
-                transformed = self.transform(image=image, mask=mask)
-                image = transformed['image']
-                mask = transformed['mask']
-            else:
-                transformed = self.transform(image=image)
-                image = transformed['image']
+            transformed = self.transform(image=image, mask=mask)
+            image = transformed['image']
+            mask = transformed['mask']
         
         # Prepare output
         sample = {
@@ -181,10 +181,8 @@ class PANDA_Dataset(Dataset):
             'label': torch.tensor(label, dtype=torch.long),
             'image_id': img_id,
             'x': x,
-            'y': y
+            'y': y,
+            'mask': mask  # Always include mask, even if it's dummy
         }
         
-        if mask is not None:
-            sample['mask'] = mask
-            
         return sample
