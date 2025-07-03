@@ -346,9 +346,11 @@ def main():
         print(f'Resuming training from epoch {start_epoch}')
     
     # Multi-GPU training
-    if torch.cuda.device_count() > 1 and args.gpus > 1:
-        print(f'Using {torch.cuda.device_count()} GPUs!')
+    if torch.cuda.device_count() > 1:
+        print(f'Using {torch.cuda.device_count()} GPUs for DataParallel training!')
         model = nn.DataParallel(model)
+    else:
+        print('Using single GPU training')
     
     # Training loop
     best_kappa = 0.0
