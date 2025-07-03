@@ -63,44 +63,45 @@ class PANDA_Dataset(Dataset):
         # Cache for WSI dimensions (loaded lazily)
         self._dimensions_cache = {}
         
-    def _precompute_patches(self) -> List[Dict]:
-        """Pre-compute valid patch coordinates for all WSIs."""
-        patches = []
-        for idx in range(len(self.df)):
-            img_id = self.df.iloc[idx]['image_id']
-            img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
-            print("Trying to open:", img_path) ######
-            try:
-                if img_path.lower().endswith('.tiff'):
-                    import rasterio
-                    with rasterio.open(img_path) as src:
-                        w, h = src.width, src.height
-                else:
-                    with openslide.OpenSlide(img_path) as slide:
-                        w, h = slide.dimensions
-            except Exception as e:
-                print(f"[WARNING] Skipping {img_path}: {e}")
-                continue
-                
-            # Calculate number of patches in each dimension
-            n_w = (w // self.img_size) - 1
-            n_h = (h // self.img_size) - 1
+    def _get_wsi_dimensions(self, img_path: str) -> Tuple[int, int]:
+        """Get WSI dimensions with caching."""
+        if img_path in self._dimensions_cache:
+            return self._dimensions_cache[img_path]
             
-            # Store patch coordinates
-            for i in range(n_w):
-                for j in range(n_h):
-                    x = i * self.img_size
-                    y = j * self.img_size
-                    patches.append({
-                        'idx': idx,
-                        'x': x,
-                        'y': y,
-                        'img_id': img_id
-                    })
-        return patches
+        try:
+            if img_path.lower().endswith('.tiff'):
+                import rasterio
+                with rasterio.open(img_path) as src:
+                    w, h = src.width, src.height
+            else:
+                with openslide.OpenSlide(img_path) as slide:
+                    w, h = slide.dimensions
+            
+            self._dimensions_cache[img_path] = (w, h)
+            return w, h
+            
+        except Exception as e:
+            print(f"[WARNING] Could not get dimensions for {img_path}: {e}")
+            # Return default dimensions
+            return 1024, 1024
+    
+    def _get_random_patch_coordinates(self, img_id: str) -> Tuple[int, int]:
+        """Get random patch coordinates for a given image."""
+        img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
+        w, h = self._get_wsi_dimensions(img_path)
+        
+        # Calculate valid coordinate ranges
+        max_x = max(0, w - self.img_size)
+        max_y = max(0, h - self.img_size)
+        
+        # Generate random coordinates
+        x = np.random.randint(0, max_x + 1) if max_x > 0 else 0
+        y = np.random.randint(0, max_y + 1) if max_y > 0 else 0
+        
+        return x, y
     
     def __len__(self) -> int:
-        return len(self.patches)
+        return len(self.df) * self.patches_per_image
     
     def _load_wsi_region(
         self,
@@ -140,14 +141,25 @@ class PANDA_Dataset(Dataset):
     
     def __getitem__(self, idx: int) -> Dict:
         """Get a sample from the dataset."""
-        patch_info = self.patches[idx]
-        img_id = patch_info['img_id']
-        x, y = patch_info['x'], patch_info['y']
+        # Calculate which image and which patch within that image
+        img_idx = idx // self.patches_per_image
+        patch_idx = idx % self.patches_per_image
+        
+        # Get image info
+        img_id = self.df.iloc[img_idx]['image_id']
+        
+        # Get random patch coordinates
+        x, y = self._get_random_patch_coordinates(img_id)
         
         # Load image
         img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
-        with openslide.OpenSlide(img_path) as slide:
-            image = self._load_wsi_region(slide, x, y, self.img_size)
+        try:
+            with openslide.OpenSlide(img_path) as slide:
+                image = self._load_wsi_region(slide, x, y, self.img_size)
+        except Exception as e:
+            print(f"[WARNING] Error loading image {img_path}: {e}")
+            # Return a black image as fallback
+            image = np.zeros((self.img_size, self.img_size, 3), dtype=np.uint8)
         
         # Load mask if not in test mode
         mask = None
@@ -156,7 +168,7 @@ class PANDA_Dataset(Dataset):
             mask = self._load_mask_region(mask_path, x, y, self.img_size)
         
         # Get label from dataframe
-        label = self.df.loc[self.df['image_id'] == img_id, 'isup_grade'].values[0]
+        label = self.df.iloc[img_idx]['isup_grade']
         
         # Apply transforms
         if self.transform:
