@@ -159,20 +159,20 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
         # Backward pass
         if config['training']['mixed_precision']:
             scaler.scale(loss).backward()
-            if config['training'].get('grad_clip', 0) > 0:
+            if float(config['training'].get('grad_clip', 0)) > 0:
                 scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
                     model.parameters(), 
-                    config['training']['grad_clip']
+                    float(config['training']['grad_clip'])
                 )
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
-            if config['training'].get('grad_clip', 0) > 0:
+            if float(config['training'].get('grad_clip', 0)) > 0:
                 torch.nn.utils.clip_grad_norm_(
                     model.parameters(), 
-                    config['training']['grad_clip']
+                    float(config['training']['grad_clip'])
                 )
             optimizer.step()
         
@@ -369,15 +369,15 @@ def main():
     # Create optimizer and scheduler
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=config['training']['lr'],
-        weight_decay=config['training']['weight_decay'],
-        betas=(config['training']['beta1'], config['training']['beta2'])
+        lr=float(config['training']['lr']),
+        weight_decay=float(config['training']['weight_decay']),
+        betas=(float(config['training']['beta1']), float(config['training']['beta2']))
     )
     
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
-        T_max=config['training']['epochs'],
-        eta_min=config['training']['min_lr']
+        T_max=int(config['training']['epochs']),
+        eta_min=float(config['training']['min_lr'])
     )
     
     # Mixed precision scaler
