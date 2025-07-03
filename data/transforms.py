@@ -1,4 +1,5 @@
 import albumentations as A
+import cv2
 from albumentations.pytorch import ToTensorV2
 import numpy as np
 from typing import Dict, Any, Optional
