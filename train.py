@@ -62,7 +62,8 @@ def create_datasets(config):
         df=train_df,
         transform=train_transforms,
         img_size=config['model']['img_size'],
-        patch_size=config['model']['patch_size']
+        patch_size=config['model']['patch_size'],
+        patches_per_image=config['data'].get('patches_per_image', 16)
     )
     
     val_dataset = PANDA_Dataset(
@@ -70,7 +71,8 @@ def create_datasets(config):
         df=val_df,
         transform=val_transforms,
         img_size=config['model']['img_size'],
-        patch_size=config['model']['patch_size']
+        patch_size=config['model']['patch_size'],
+        patches_per_image=config['data'].get('patches_per_image', 16)
     )
     
     return train_dataset, val_dataset

@@ -26,6 +26,7 @@ data:
   num_workers: 8
   pin_memory: true
   persistent_workers: true
+  patches_per_image: 16  # Number of random patches per image
 
 # Augmentation Configuration
 augmentation:

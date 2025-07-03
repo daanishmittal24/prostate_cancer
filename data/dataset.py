@@ -69,13 +69,8 @@ class PANDA_Dataset(Dataset):
             return self._dimensions_cache[img_path]
             
         try:
-            if img_path.lower().endswith('.tiff'):
-                import rasterio
-                with rasterio.open(img_path) as src:
-                    w, h = src.width, src.height
-            else:
-                with openslide.OpenSlide(img_path) as slide:
-                    w, h = slide.dimensions
+            with openslide.OpenSlide(img_path) as slide:
+                w, h = slide.dimensions
             
             self._dimensions_cache[img_path] = (w, h)
             return w, h
@@ -133,9 +128,9 @@ class PANDA_Dataset(Dataset):
             
             # Convert RGB mask to binary mask (assuming red channel indicates tumor)
             if mask_region.size > 0:
-                mask_region = (mask_region[..., 0] > 0).astype(np.float32)
+                mask_region = (mask_region[..., 0] > 0).astype('float32')
             else:
-                mask_region = np.zeros((size, size), dtype=np.float32)
+                mask_region = np.zeros((size, size), dtype='float32')
                 
         return mask_region
     
@@ -146,7 +141,7 @@ class PANDA_Dataset(Dataset):
         patch_idx = idx % self.patches_per_image
         
         # Get image info
-        img_id = self.df.iloc[img_idx]['image_id']
+        img_id = str(self.df.iloc[img_idx]['image_id'])
         
         # Get random patch coordinates
         x, y = self._get_random_patch_coordinates(img_id)
@@ -159,7 +154,7 @@ class PANDA_Dataset(Dataset):
         except Exception as e:
             print(f"[WARNING] Error loading image {img_path}: {e}")
             # Return a black image as fallback
-            image = np.zeros((self.img_size, self.img_size, 3), dtype=np.uint8)
+            image = np.zeros((self.img_size, self.img_size, 3), dtype='uint8')
         
         # Load mask if not in test mode
         mask = None
