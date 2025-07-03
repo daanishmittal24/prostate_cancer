@@ -57,7 +57,7 @@ class PANDA_Dataset(Dataset):
         for idx in range(len(self.df)):
             img_id = self.df.iloc[idx]['image_id']
             img_path = os.path.join(self.image_dir, f"{img_id}.tiff")
-            
+            print("Trying to open:", img_path) ######
             with openslide.OpenSlide(img_path) as slide:
                 w, h = slide.dimensions
                 
