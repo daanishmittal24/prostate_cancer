@@ -22,11 +22,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 16
-  num_workers: 8
-  pin_memory: true
-  persistent_workers: true
-  patches_per_image: 16  # Number of random patches per image
+  batch_size: 32  # Increased for 4 GPU training (8 per GPU)
+  num_workers: 16  # Increased for multi-GPU
+  pin_memory: true  # Enabled for GPU training
+  persistent_workers: true  # Enabled for GPU training
+  patches_per_image: 16  # Restored for full training
 
 # Augmentation Configuration
 augmentation:
@@ -40,15 +40,15 @@ augmentation:
 
 # Training Configuration
 training:
-  epochs: 20
+  epochs: 20  # Full training epochs
   warmup_epochs: 5
-  lr: 5.0e-5
+  lr: 2.0e-4  # Increased LR for larger batch size (4x8=32)
   min_lr: 1.0e-6
   weight_decay: 0.01
   beta1: 0.9
   beta2: 0.999
   grad_clip: 1.0
-  mixed_precision: true
+  mixed_precision: true  # Enabled for GPU training
   accumulate_grad_batches: 1
   val_check_interval: 0.5  # Check validation set twice per epoch
 
@@ -65,8 +65,8 @@ logging:
 # System Configuration
 system:
   gpus: 4
-  accelerator: "ddp"
-  precision: 16 if training.mixed_precision else 32
+  accelerator: "ddp"  # Distributed Data Parallel for multi-GPU
+  precision: 16  # Mixed precision training
   deterministic: true
   benchmark: true
   seed: 42

@@ -267,7 +267,20 @@ def main():
     config = load_config(args.config)
     
     # Set up device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available! GPU training requires CUDA.")
+    
+    device = torch.device('cuda')
+    print(f"Using device: {device}")
+    print(f"Available GPUs: {torch.cuda.device_count()}")
+    
+    # Set CUDA optimizations for multi-GPU training
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = True
+    
+    # Mixed precision is enabled for GPU training
+    use_mixed_precision = config['training']['mixed_precision']
+    print(f"Mixed precision training: {use_mixed_precision}")
     
     # Create output directory
     os.makedirs(config['logging']['log_dir'], exist_ok=True)
