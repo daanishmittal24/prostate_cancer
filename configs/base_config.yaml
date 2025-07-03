@@ -1,6 +1,6 @@
 # Model Configuration
 model:
-  name: "vit_base_patch16_224"
+  name: "google/vit-base-patch16-224"
   pretrained: true
   num_classes: 6  # ISUP grades 0-5
   img_size: 224
