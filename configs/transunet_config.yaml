@@ -23,7 +23,7 @@ data:
   num_workers: 16
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 32  # Increased from 20 for better training
+  patches_per_image: 40  # Increased from 20 for better training
 
 # Augmentation Configuration
 augmentation:
