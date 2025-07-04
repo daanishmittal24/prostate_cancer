@@ -23,7 +23,8 @@ data:
   num_workers: 16
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 40  # Increased from 20 for better training
+  patches_per_image: 35  # Reduced from 40 to speed up training
+  validate_files: true  # Pre-validate files to avoid corrupted images
 
 # Augmentation Configuration
 augmentation:

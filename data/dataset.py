@@ -7,11 +7,17 @@ from torch.utils.data import Dataset
 from PIL import Image
 import openslide
 from typing import Dict, List, Tuple, Optional, Union
+import warnings
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class PANDA_Dataset(Dataset):
     """
     PANDA Challenge Dataset for prostate cancer detection.
-    Handles loading of WSI patches and corresponding masks.
+    Handles loading of WSI patches and corresponding masks with improved error handling.
     """
     
     def __init__(
@@ -26,6 +32,7 @@ class PANDA_Dataset(Dataset):
         patch_size: int = 224,
         scale: int = 1,
         patches_per_image: int = 16,  # Number of random patches per image
+        validate_files: bool = True,  # Pre-validate files to avoid training slowdowns
     ):
         """
         Args:
@@ -39,17 +46,21 @@ class PANDA_Dataset(Dataset):
             patch_size: Final size of the patches after transforms
             scale: Scale factor for the WSI
             patches_per_image: Number of patches to extract per image
+            validate_files: If True, pre-validates all files and removes corrupted ones
         """
         self.data_dir = data_dir
         self.df = df.reset_index(drop=True)
+        self.validate_files = validate_files
         
         # Clean labels: map 'negative' to '0+0' in gleason_score
         if 'gleason_score' in self.df.columns:
             self.df['gleason_score'] = self.df['gleason_score'].apply(lambda x: '0+0' if x == 'negative' else x)
-            # Drop known mislabels (from Kaggle EDA)
-            # Check if row 7273 exists and drop it
-            if 7273 in self.df.index:
-                self.df = self.df.drop([7273])
+        
+        # Pre-validate files if requested
+        if self.validate_files:
+            logger.info("Pre-validating image files...")
+            self._validate_and_clean_dataset()
+            logger.info(f"Dataset cleaned: {len(self.df)} valid images remaining")
         
         self.image_dir = os.path.join(data_dir, image_dir)
         self.mask_dir = os.path.join(data_dir, mask_dir)
@@ -60,25 +71,50 @@ class PANDA_Dataset(Dataset):
         self.scale = scale
         self.patches_per_image = patches_per_image
         
-        # Cache for WSI dimensions (loaded lazily)
-        self._dimensions_cache = {}
+        # Cache for WSI dimensions to avoid repeated file access
+        self._dimension_cache = {}
         
+    def _validate_and_clean_dataset(self):
+        """Pre-validate all image files and remove corrupted ones from the dataset."""
+        valid_indices = []
+        
+        for idx, row in self.df.iterrows():
+            img_id = str(row['image_id'])
+            img_path = os.path.join(self.data_dir, 'train_images', f"{img_id}.tiff")
+            
+            try:
+                # Try to open the file with openslide
+                with openslide.OpenSlide(img_path) as slide:
+                    # Get dimensions to ensure file is readable
+                    w, h = slide.dimensions
+                    if w > 0 and h > 0:
+                        valid_indices.append(idx)
+                    else:
+                        logger.warning(f"Invalid dimensions for {img_id}.tiff: {w}x{h}")
+            except Exception as e:
+                logger.warning(f"Corrupted or missing file {img_id}.tiff: {e}")
+                continue
+        
+        # Keep only valid files
+        self.df = self.df.iloc[valid_indices].reset_index(drop=True)
+        logger.info(f"Removed {len(self.df.index) - len(valid_indices)} corrupted/missing files")
+    
     def _get_wsi_dimensions(self, img_path: str) -> Tuple[int, int]:
         """Get WSI dimensions with caching."""
-        if img_path in self._dimensions_cache:
-            return self._dimensions_cache[img_path]
+        if img_path in self._dimension_cache:
+            return self._dimension_cache[img_path]
             
         try:
             with openslide.OpenSlide(img_path) as slide:
                 w, h = slide.dimensions
-            
-            self._dimensions_cache[img_path] = (w, h)
-            return w, h
-            
+                self._dimension_cache[img_path] = (w, h)
+                return w, h
         except Exception as e:
-            print(f"[WARNING] Could not get dimensions for {img_path}: {e}")
+            logger.warning(f"Could not get dimensions for {img_path}: {e}")
             # Return default dimensions
-            return 1024, 1024
+            default_dims = (1024, 1024)
+            self._dimension_cache[img_path] = default_dims
+            return default_dims
     
     def _get_random_patch_coordinates(self, img_id: str) -> Tuple[int, int]:
         """Get random patch coordinates for a given image."""
@@ -152,7 +188,13 @@ class PANDA_Dataset(Dataset):
             with openslide.OpenSlide(img_path) as slide:
                 image = self._load_wsi_region(slide, x, y, self.img_size)
         except Exception as e:
-            print(f"[WARNING] Error loading image {img_path}: {e}")
+            # Log error only once per image to avoid log spam
+            if img_path not in getattr(self, '_error_logged', set()):
+                logger.warning(f"Error loading image {img_id}.tiff: {e}")
+                if not hasattr(self, '_error_logged'):
+                    self._error_logged = set()
+                self._error_logged.add(img_path)
+            
             # Return a black image as fallback
             image = np.zeros((self.img_size, self.img_size, 3), dtype='uint8')
         
@@ -171,9 +213,15 @@ class PANDA_Dataset(Dataset):
         
         # Apply transforms
         if self.transform:
-            transformed = self.transform(image=image, mask=mask)
-            image = transformed['image']
-            mask = transformed['mask']
+            try:
+                transformed = self.transform(image=image, mask=mask)
+                image = transformed['image']
+                mask = transformed['mask']
+            except Exception as e:
+                logger.warning(f"Transform error for {img_id}: {e}")
+                # Use original image/mask if transform fails
+                image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
+                mask = torch.from_numpy(mask).float()
         
         # Prepare output
         sample = {
