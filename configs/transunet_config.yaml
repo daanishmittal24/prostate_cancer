@@ -19,8 +19,8 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 100  # Increased from 32 to use more GPU memory
-  num_workers: 16
+  batch_size: 80  # Reduced from 100 to prevent memory issues
+  num_workers: 8   # Reduced from 16 to prevent worker crashes
   pin_memory: true
   persistent_workers: true
   patches_per_image: 35  # Reduced from 40 to speed up training

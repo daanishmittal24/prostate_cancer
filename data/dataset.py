@@ -81,23 +81,43 @@ class PANDA_Dataset(Dataset):
         for idx, row in self.df.iterrows():
             img_id = str(row['image_id'])
             img_path = os.path.join(self.data_dir, 'train_images', f"{img_id}.tiff")
+            mask_path = os.path.join(self.data_dir, 'train_label_masks', f"{img_id}_mask.tiff")
             
+            # Check image file
+            img_valid = True
             try:
-                # Try to open the file with openslide
                 with openslide.OpenSlide(img_path) as slide:
-                    # Get dimensions to ensure file is readable
                     w, h = slide.dimensions
-                    if w > 0 and h > 0:
-                        valid_indices.append(idx)
-                    else:
+                    if w <= 0 or h <= 0:
+                        img_valid = False
                         logger.warning(f"Invalid dimensions for {img_id}.tiff: {w}x{h}")
             except Exception as e:
-                logger.warning(f"Corrupted or missing file {img_id}.tiff: {e}")
-                continue
+                img_valid = False
+                logger.warning(f"Corrupted or missing image {img_id}.tiff: {e}")
+            
+            # Check mask file (if not in test mode)
+            mask_valid = True
+            if not self.is_test and os.path.exists(mask_path):
+                try:
+                    with openslide.OpenSlide(mask_path) as mask_slide:
+                        w, h = mask_slide.dimensions
+                        if w <= 0 or h <= 0:
+                            mask_valid = False
+                            logger.warning(f"Invalid mask dimensions for {img_id}_mask.tiff: {w}x{h}")
+                except Exception as e:
+                    mask_valid = False
+                    logger.warning(f"Corrupted mask file {img_id}_mask.tiff: {e}")
+            
+            # Only keep samples with valid images (masks are optional)
+            if img_valid:
+                valid_indices.append(idx)
         
         # Keep only valid files
+        original_count = len(self.df)
         self.df = self.df.iloc[valid_indices].reset_index(drop=True)
-        logger.info(f"Removed {len(self.df.index) - len(valid_indices)} corrupted/missing files")
+        removed_count = original_count - len(self.df)
+        if removed_count > 0:
+            logger.info(f"Removed {removed_count} corrupted/missing files")
     
     def _get_wsi_dimensions(self, img_path: str) -> Tuple[int, int]:
         """Get WSI dimensions with caching."""
@@ -153,22 +173,33 @@ class PANDA_Dataset(Dataset):
         y: int,
         size: int
     ) -> Optional[np.ndarray]:
-        """Load a region from a mask WSI."""
+        """Load a region from a mask WSI with improved error handling."""
         if not os.path.exists(mask_path):
             return None
             
-        with openslide.OpenSlide(mask_path) as mask_slide:
-            mask_region = mask_slide.read_region((x, y), 0, (size, size))
-            mask_region = mask_region.convert('RGB')
-            mask_region = np.array(mask_region)
-            
-            # Convert RGB mask to binary mask (assuming red channel indicates tumor)
-            if mask_region.size > 0:
-                mask_region = (mask_region[..., 0] > 0).astype('float32')
-            else:
-                mask_region = np.zeros((size, size), dtype='float32')
+        try:
+            with openslide.OpenSlide(mask_path) as mask_slide:
+                mask_region = mask_slide.read_region((x, y), 0, (size, size))
+                mask_region = mask_region.convert('RGB')
+                mask_region = np.array(mask_region)
                 
-        return mask_region
+                # Convert RGB mask to binary mask (assuming red channel indicates tumor)
+                if mask_region.size > 0:
+                    mask_region = (mask_region[..., 0] > 0).astype('float32')
+                else:
+                    mask_region = np.zeros((size, size), dtype='float32')
+                    
+            return mask_region
+        except Exception as e:
+            # Log error only once per mask file to avoid spam
+            if mask_path not in getattr(self, '_mask_error_logged', set()):
+                logger.warning(f"Error loading mask {os.path.basename(mask_path)}: {e}")
+                if not hasattr(self, '_mask_error_logged'):
+                    self._mask_error_logged = set()
+                self._mask_error_logged.add(mask_path)
+            
+            # Return a zero mask as fallback
+            return np.zeros((size, size), dtype='float32')
     
     def __getitem__(self, idx: int) -> Dict:
         """Get a sample from the dataset."""
