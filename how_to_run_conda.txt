@@ -1,1 +1,59 @@
 source /home/Saif/ekam/miniconda3/bin/activate prostate38
+
+
+# Kill all train_transunet processes
+pkill -f train_transunet
+
+# Or kill them individually if needed
+kill 36260 36355 36421 36462 36503 36544 36585 36626 36667 36708 36749 36790 36831 36872 36913 36955 36995 37051
+
+# Verify all processes are killed
+pgrep -f train_transunet
+
+
+# Check if GPU memory is freed
+nvidia-smi
+
+# If GPU memory still occupied, force kill
+sudo pkill -9 -f train_transunet
+
+
+# Make sure you're in the right directory and environment
+cd ~/Pratham/ELC/prostate_cancer
+conda activate prostate38
+
+# Resume training from best checkpoint with nohup
+nohup python train_transunet_clean.py \
+    --config configs/transunet_config.yaml \
+    --resume checkpoints/transunet_best.pth \
+    --gpus 1 > training_resume.log 2>&1 &
+
+# Get the new process ID
+echo "New training process ID: $!"
+
+
+# Watch the log file
+tail -f training_resume.log
+
+# Check if new process is running
+pgrep -f train_transunet
+
+# Monitor GPU usage
+watch -n 1 nvidia-smi
+
+
+# Check log for resume message
+grep -i "resumed" training_resume.log
+
+# Check latest training progress
+tail -10 training_resume.log
+
+# Check checkpoint directory
+ls -la checkpoints/
+
+
+
+# Start new training with nohup
+nohup python train_transunet_clean.py \
+    --config configs/transunet_config.yaml \
+    --gpus 1 > training_fresh.log 2>&1 &

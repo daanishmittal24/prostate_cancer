@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 32  # Reduced for TransUNet (more memory intensive)
+  batch_size: 48  # Increased from 32 to use more GPU memory
   num_workers: 16
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 20  # Reduced for faster training
+  patches_per_image: 32  # Increased from 20 for better training
 
 # Augmentation Configuration
 augmentation:
