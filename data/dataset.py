@@ -51,6 +51,19 @@ class PANDA_Dataset(Dataset):
         self.data_dir = data_dir
         self.df = df.reset_index(drop=True)
         self.validate_files = validate_files
+        self.is_test = is_test  # Set this early so validation can use it
+        
+        # Set other attributes early
+        self.image_dir = os.path.join(data_dir, image_dir)
+        self.mask_dir = os.path.join(data_dir, mask_dir)
+        self.transform = transform
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.scale = scale
+        self.patches_per_image = patches_per_image
+        
+        # Cache for WSI dimensions to avoid repeated file access
+        self._dimension_cache = {}
         
         # Clean labels: map 'negative' to '0+0' in gleason_score
         if 'gleason_score' in self.df.columns:
@@ -61,18 +74,6 @@ class PANDA_Dataset(Dataset):
             logger.info("Pre-validating image files...")
             self._validate_and_clean_dataset()
             logger.info(f"Dataset cleaned: {len(self.df)} valid images remaining")
-        
-        self.image_dir = os.path.join(data_dir, image_dir)
-        self.mask_dir = os.path.join(data_dir, mask_dir)
-        self.transform = transform
-        self.is_test = is_test
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.scale = scale
-        self.patches_per_image = patches_per_image
-        
-        # Cache for WSI dimensions to avoid repeated file access
-        self._dimension_cache = {}
         
     def _validate_and_clean_dataset(self):
         """Pre-validate all image files and remove corrupted ones from the dataset."""
