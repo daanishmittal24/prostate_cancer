@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 64  # Increased for 32GB GPU (was 32)
-  num_workers: 16
+  batch_size: 128  # Maximized for 32GB GPU
+  num_workers: 32  # Increased for better data loading
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 16  # Increased back for better training (was 12)
+  patches_per_image: 20  # More patches for better learning
 
 # Augmentation Configuration
 augmentation:
@@ -37,9 +37,9 @@ augmentation:
 
 # Training Configuration
 training:
-  epochs: 25
-  warmup_epochs: 3
-  lr: 0.0002  # Increased LR for larger batch size (was 0.0001)
+  epochs: 30  # Increased epochs for better convergence
+  warmup_epochs: 5  # Better warmup
+  lr: 0.0003  # Higher LR for larger batch size
   min_lr: 0.000001
   weight_decay: 0.01
   beta1: 0.9

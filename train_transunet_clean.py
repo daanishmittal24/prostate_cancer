@@ -26,6 +26,26 @@ import pandas as pd
 from models import create_transunet
 from data import PANDA_Dataset, get_train_transforms, get_valid_transforms
 
+def log_gpu_memory():
+    """Log GPU memory usage"""
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1024**3  # GB
+        reserved = torch.cuda.memory_reserved() / 1024**3   # GB
+        max_memory = torch.cuda.max_memory_allocated() / 1024**3  # GB
+        return f"GPU Memory: {allocated:.1f}GB allocated, {reserved:.1f}GB reserved, {max_memory:.1f}GB peak"
+    return "GPU not available"
+
+def print_training_summary(epoch, epochs, train_metrics, val_metrics, lr, epoch_time):
+    """Print comprehensive training summary"""
+    print("\n" + "="*80)
+    print(f"📊 EPOCH {epoch + 1}/{epochs} SUMMARY")
+    print("="*80)
+    print(f"⏱️  Time: {epoch_time:.1f}s | Learning Rate: {lr:.6f}")
+    print(f"🖥️  {log_gpu_memory()}")
+    print(f"🚂 TRAIN  - Loss: {train_metrics[0]:.4f} | Acc: {train_metrics[1]:.3f} | Kappa: {train_metrics[2]:.3f}")
+    print(f"✅ VALID  - Loss: {val_metrics[0]:.4f} | Acc: {val_metrics[1]:.3f} | Kappa: {val_metrics[2]:.3f}")
+    print("="*80)
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train TransUNet for Prostate Cancer')
     parser.add_argument('--config', type=str, default='configs/transunet_config.yaml',
