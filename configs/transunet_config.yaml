@@ -20,7 +20,7 @@ data:
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
   batch_size: 64  # Reduced from 80 for stability
-  num_workers: 6   # Reduced from 8 to prevent issues
+  num_workers: 4   # Reduced from 8 to prevent issues
   pin_memory: true
   persistent_workers: true
   patches_per_image: 16  # Reduced from 35 for stability
@@ -38,10 +38,10 @@ augmentation:
 
 # Training Configuration
 training:
-  epochs: 25
-  warmup_epochs: 5  # Increased warmup for stability
-  lr: 0.00005  # Much lower LR to prevent instability
-  min_lr: 0.000001  # Proportionally adjusted
+  epochs: 10
+  warmup_epochs: 1  # Increased warmup for stability
+  lr: 0.0005  # Much lower LR to prevent instability
+  min_lr: 0.00001  # Proportionally adjusted
   weight_decay: 0.01
   beta1: 0.9
   beta2: 0.999
