@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 128  # Reduced from 80 for stability
-  num_workers: 6   # Reduced from 8 to prevent issues
+  batch_size: 16  # VERY small batch for maximum stability
+  num_workers: 2   # Minimal workers to prevent issues
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 16  # Reduced from 35 for stability
+  patches_per_image: 8  # Very conservative patch count
   validate_files: true  # Pre-validate files to avoid corrupted images
 
 # Augmentation Configuration
@@ -39,14 +39,14 @@ augmentation:
 # Training Configuration
 training:
   epochs: 10
-  warmup_epochs: 1  # Increased warmup for stability
-  lr: 0.0005  # Much lower LR to prevent instability
-  min_lr: 0.00001  # Proportionally adjusted
+  warmup_epochs: 3  # Longer warmup for stability
+  lr: 0.00001  # VERY conservative LR to prevent NaN
+  min_lr: 0.000001  # Proportionally adjusted
   weight_decay: 0.01
   beta1: 0.9
   beta2: 0.999
-  grad_clip: 0.5  # Reduced gradient clipping for stability
-  mixed_precision: true  # Enable mixed precision to prevent NaN
+  grad_clip: 0.1  # Very aggressive gradient clipping
+  mixed_precision: false  # DISABLE mixed precision to prevent NaN
   accumulate_grad_batches: 1
 
 # Logging Configuration
