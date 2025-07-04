@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 32  # Reduced for TransUNet (more memory intensive)
+  batch_size: 64  # Increased for 32GB GPU (was 32)
   num_workers: 16
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 12  # Reduced for faster training
+  patches_per_image: 16  # Increased back for better training (was 12)
 
 # Augmentation Configuration
 augmentation:
@@ -39,7 +39,7 @@ augmentation:
 training:
   epochs: 25
   warmup_epochs: 3
-  lr: 0.0001  # Lower learning rate for TransUNet
+  lr: 0.0002  # Increased LR for larger batch size (was 0.0001)
   min_lr: 0.000001
   weight_decay: 0.01
   beta1: 0.9
@@ -54,8 +54,8 @@ logging:
   checkpoint_dir: "./checkpoints"
   experiment_name: "transunet_prostate_cancer"
   use_wandb: false
-  log_every_n_steps: 50
-  save_top_k: 3
+  log_every_n_steps: 25  # More frequent logging (was 50)
+  save_top_k: 5  # Save more checkpoints (was 3)
   monitor: "val_kappa"
   mode: "max"
 
