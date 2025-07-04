@@ -249,6 +249,17 @@ class PANDA_Dataset(Dataset):
                 transformed = self.transform(image=image, mask=mask)
                 image = transformed['image']
                 mask = transformed['mask']
+                
+                # Validate transformed data for NaN/Inf
+                if torch.isnan(image).any() or torch.isinf(image).any():
+                    logger.warning(f"NaN/Inf detected in image {img_id} after transforms")
+                    # Use simple normalization as fallback
+                    image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
+                    
+                if torch.isnan(mask).any() or torch.isinf(mask).any():
+                    logger.warning(f"NaN/Inf detected in mask {img_id} after transforms")
+                    mask = torch.from_numpy(mask).float()
+                    
             except Exception as e:
                 logger.warning(f"Transform error for {img_id}: {e}")
                 # Use original image/mask if transform fails

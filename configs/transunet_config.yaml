@@ -26,15 +26,15 @@ data:
   patches_per_image: 8  # Very conservative patch count
   validate_files: true  # Pre-validate files to avoid corrupted images
 
-# Augmentation Configuration
+# Augmentation Configuration - MINIMAL for stability
 augmentation:
-  hflip_prob: 0.5
-  vflip_prob: 0.5
-  rotation_range: 15
-  brightness: 0.15
-  contrast: 0.15
-  scale_limit: 0.15
-  shift_limit: 0.15
+  hflip_prob: 0.3  # Reduced probability
+  vflip_prob: 0.3  # Reduced probability
+  rotation_range: 5  # Much smaller rotation
+  brightness: 0.05  # Much smaller brightness change
+  contrast: 0.05    # Much smaller contrast change
+  scale_limit: 0.05 # Much smaller scale change
+  shift_limit: 0.05 # Much smaller shift
 
 # Training Configuration
 training:

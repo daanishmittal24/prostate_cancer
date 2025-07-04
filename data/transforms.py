@@ -63,8 +63,8 @@ def get_train_transforms(img_size: int = 224, scale: float = 0.1) -> A.Compose:
         # Normalization and resizing
         A.Resize(img_size, img_size, always_apply=True),
         A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
+            mean=[0.5, 0.5, 0.5],  # More conservative normalization for medical images
+            std=[0.5, 0.5, 0.5],   # Maps [0,1] to [-1,1]
             max_pixel_value=255.0,
             p=1.0
         ),
@@ -86,8 +86,8 @@ def get_valid_transforms(img_size: int = 224) -> A.Compose:
     return A.Compose([
         A.Resize(img_size, img_size, always_apply=True),
         A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
+            mean=[0.5, 0.5, 0.5],  # More conservative normalization for medical images
+            std=[0.5, 0.5, 0.5],   # Maps [0,1] to [-1,1]
             max_pixel_value=255.0,
             p=1.0
         ),

@@ -105,20 +105,38 @@ def create_model(config):
     return model
 
 def compute_loss(outputs, labels, masks, device):
-    """Compute combined classification and segmentation loss."""
+    """Compute combined classification and segmentation loss with numerical stability."""
     # Classification loss
     cls_criterion = nn.CrossEntropyLoss()
     cls_loss = cls_criterion(outputs['classification'], labels)
     
+    # Check for NaN in classification loss
+    if torch.isnan(cls_loss):
+        print("WARNING: NaN detected in classification loss!")
+        cls_loss = torch.tensor(0.0, device=device, requires_grad=True)
+    
     # Segmentation loss (only if masks are available)
     seg_loss = torch.tensor(0.0, device=device)
     if masks is not None and masks.sum() > 0:
+        # Clamp segmentation outputs to prevent extreme values
+        seg_outputs = torch.clamp(outputs['segmentation'], min=-10.0, max=10.0)
+        
         # Binary segmentation with BCE loss
         seg_criterion = nn.BCEWithLogitsLoss()
-        seg_loss = seg_criterion(outputs['segmentation'], masks)
+        seg_loss = seg_criterion(seg_outputs, masks)
+        
+        # Check for NaN in segmentation loss
+        if torch.isnan(seg_loss):
+            print("WARNING: NaN detected in segmentation loss!")
+            seg_loss = torch.tensor(0.0, device=device, requires_grad=True)
     
     # Combined loss (weighted)
-    total_loss = cls_loss + 0.5 * seg_loss
+    total_loss = cls_loss + 0.1 * seg_loss  # Reduced segmentation weight
+    
+    # Final NaN check
+    if torch.isnan(total_loss):
+        print("WARNING: NaN detected in total loss! Using fallback loss.")
+        total_loss = torch.tensor(1.0, device=device, requires_grad=True)
     
     return {
         'total_loss': total_loss,
