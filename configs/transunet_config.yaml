@@ -19,8 +19,8 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 64  # Reduced for TransUNet (more memory intensive)
-  num_workers: 32
+  batch_size: 32  # Reduced for TransUNet (more memory intensive)
+  num_workers: 16
   pin_memory: true
   persistent_workers: true
   patches_per_image: 20  # Reduced for faster training
@@ -55,7 +55,7 @@ logging:
   experiment_name: "transunet_prostate_cancer"
   use_wandb: false
   log_every_n_steps: 25
-  save_top_k: 5
+  save_top_k: 3
   monitor: "val_kappa"
   mode: "max"
 
