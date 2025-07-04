@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 32  # Reduced from 80 for stability
-  num_workers: 4   # Reduced from 8 to prevent issues
+  batch_size: 64  # Reduced from 80 for stability
+  num_workers: 6   # Reduced from 8 to prevent issues
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 20  # Reduced from 35 for stability
+  patches_per_image: 16  # Reduced from 35 for stability
   validate_files: true  # Pre-validate files to avoid corrupted images
 
 # Augmentation Configuration
@@ -46,7 +46,7 @@ training:
   beta1: 0.9
   beta2: 0.999
   grad_clip: 0.5  # Reduced gradient clipping for stability
-  mixed_precision: false  # Disable mixed precision to prevent NaN
+  mixed_precision: true  # Enable mixed precision to prevent NaN
   accumulate_grad_batches: 1
 
 # Logging Configuration
@@ -62,7 +62,7 @@ logging:
 
 # System Configuration
 system:
-  gpus: 4
+  gpus: 1
   seed: 42
   deterministic: true
   benchmark: true
