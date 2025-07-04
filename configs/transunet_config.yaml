@@ -19,8 +19,8 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 96  # Reduced from 80 for stability
-  num_workers: 4   # Reduced from 8 to prevent issues
+  batch_size: 112  # Reduced from 80 for stability
+  num_workers: 6   # Reduced from 8 to prevent issues
   pin_memory: true
   persistent_workers: true
   patches_per_image: 16  # Reduced from 35 for stability
