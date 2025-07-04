@@ -7,7 +7,6 @@ Clean implementation that works with the TransUNet model
 import os
 import argparse
 import yaml
-import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -25,26 +24,6 @@ import pandas as pd
 
 from models import create_transunet
 from data import PANDA_Dataset, get_train_transforms, get_valid_transforms
-
-def log_gpu_memory():
-    """Log GPU memory usage"""
-    if torch.cuda.is_available():
-        allocated = torch.cuda.memory_allocated() / 1024**3  # GB
-        reserved = torch.cuda.memory_reserved() / 1024**3   # GB
-        max_memory = torch.cuda.max_memory_allocated() / 1024**3  # GB
-        return f"GPU Memory: {allocated:.1f}GB allocated, {reserved:.1f}GB reserved, {max_memory:.1f}GB peak"
-    return "GPU not available"
-
-def print_training_summary(epoch, epochs, train_metrics, val_metrics, lr, epoch_time):
-    """Print comprehensive training summary"""
-    print("\n" + "="*80)
-    print(f"📊 EPOCH {epoch + 1}/{epochs} SUMMARY")
-    print("="*80)
-    print(f"⏱️  Time: {epoch_time:.1f}s | Learning Rate: {lr:.6f}")
-    print(f"🖥️  {log_gpu_memory()}")
-    print(f"🚂 TRAIN  - Loss: {train_metrics[0]:.4f} | Acc: {train_metrics[1]:.3f} | Kappa: {train_metrics[2]:.3f}")
-    print(f"✅ VALID  - Loss: {val_metrics[0]:.4f} | Acc: {val_metrics[1]:.3f} | Kappa: {val_metrics[2]:.3f}")
-    print("="*80)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train TransUNet for Prostate Cancer')
@@ -157,11 +136,7 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
     all_preds = []
     all_labels = []
     
-    # Enhanced progress bar with more info
-    pbar = tqdm(loader, desc=f'Epoch {epoch + 1}/25 [TRAIN]', 
-                ncols=120, leave=True)
-    
-    log_freq = config['logging'].get('log_every_n_steps', 25)
+    pbar = tqdm(loader, desc=f'Epoch {epoch + 1} [Train]')
     
     for step, batch in enumerate(pbar):
         images = batch['image'].to(device)
@@ -218,24 +193,13 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
         all_preds.extend(preds.detach().cpu().numpy())
         all_labels.extend(labels.detach().cpu().numpy())
         
-        # Enhanced progress bar with more metrics
+        # Update progress bar
         accuracy = cls_correct / cls_total
-        current_lr = optimizer.param_groups[0]['lr']
         pbar.set_postfix({
-            'Loss': f'{loss.item():.3f}',
-            'AvgLoss': f'{train_loss / (step + 1):.3f}',
-            'ClsLoss': f'{losses["cls_loss"].item():.3f}',
-            'SegLoss': f'{losses["seg_loss"].item():.3f}',
-            'Acc': f'{accuracy:.3f}',
-            'LR': f'{current_lr:.2e}'
+            'loss': loss.item(),
+            'avg_loss': train_loss / (step + 1),
+            'acc': f'{accuracy:.3f}'
         })
-        
-        # More frequent tensorboard logging
-        if step % log_freq == 0:
-            global_step = epoch * len(loader) + step
-            writer.add_scalar('Train/Loss_Step', loss.item(), global_step)
-            writer.add_scalar('Train/Accuracy_Step', accuracy, global_step)
-            writer.add_scalar('Train/LearningRate', current_lr, global_step)
     
     # Calculate final metrics
     train_loss /= len(loader)
@@ -243,11 +207,6 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, writer, config)
     train_seg_loss /= len(loader)
     train_acc = cls_correct / cls_total
     kappa = cohen_kappa_score(all_labels, all_preds, weights='quadratic')
-    
-    # Enhanced epoch-end logging
-    print(f"\n📊 EPOCH {epoch + 1} TRAIN RESULTS:")
-    print(f"   Total Loss: {train_loss:.4f} | Cls Loss: {train_cls_loss:.4f} | Seg Loss: {train_seg_loss:.4f}")
-    print(f"   Accuracy: {train_acc:.4f} | Kappa: {kappa:.4f}")
     
     # Log metrics
     writer.add_scalar('Loss/train_total', train_loss, epoch)
@@ -271,8 +230,7 @@ def validate(model, loader, device, epoch, writer, config):
     all_labels = []
     
     with torch.no_grad():
-        pbar = tqdm(loader, desc=f'Epoch {epoch + 1}/25 [VALID]', 
-                    ncols=120, leave=True)
+        pbar = tqdm(loader, desc=f'Epoch {epoch + 1} [Val]')
         
         for step, batch in enumerate(pbar):
             images = batch['image'].to(device)
@@ -307,14 +265,12 @@ def validate(model, loader, device, epoch, writer, config):
             all_preds.extend(preds.detach().cpu().numpy())
             all_labels.extend(labels.detach().cpu().numpy())
             
-            # Enhanced validation progress bar
+            # Update progress bar
             accuracy = cls_correct / cls_total
             pbar.set_postfix({
-                'Loss': f'{loss.item():.3f}',
-                'AvgLoss': f'{val_loss / (step + 1):.3f}',
-                'ClsLoss': f'{losses["cls_loss"].item():.3f}',
-                'SegLoss': f'{losses["seg_loss"].item():.3f}',
-                'Acc': f'{accuracy:.3f}'
+                'loss': loss.item(),
+                'avg_loss': val_loss / (step + 1),
+                'acc': f'{accuracy:.3f}'
             })
     
     # Calculate final metrics
@@ -323,11 +279,6 @@ def validate(model, loader, device, epoch, writer, config):
     val_seg_loss /= len(loader)
     val_acc = cls_correct / cls_total
     kappa = cohen_kappa_score(all_labels, all_preds, weights='quadratic')
-    
-    # Enhanced validation results
-    print(f"\n🔍 EPOCH {epoch + 1} VALIDATION RESULTS:")
-    print(f"   Total Loss: {val_loss:.4f} | Cls Loss: {val_cls_loss:.4f} | Seg Loss: {val_seg_loss:.4f}")
-    print(f"   Accuracy: {val_acc:.4f} | Kappa: {kappa:.4f}")
     
     # Log metrics
     writer.add_scalar('Loss/val_total', val_loss, epoch)
@@ -416,15 +367,8 @@ def main():
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
-    # GPU memory info
-    if torch.cuda.is_available():
-        gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-        print(f"🖥️  GPU: {torch.cuda.get_device_name(0)} ({gpu_memory:.1f}GB)")
-        print(f"📊 Memory: {torch.cuda.memory_allocated(0) / (1024**3):.2f}GB allocated")
-    
-    print(f"🧠 Model: {total_params:,} total parameters")
-    print(f"🎯 Trainable: {trainable_params:,} parameters")
+    print(f"Total parameters: {total_params:,}")
+    print(f"Trainable parameters: {trainable_params:,}")
     
     # Create optimizer and scheduler
     optimizer = optim.AdamW(
@@ -457,18 +401,10 @@ def main():
         print(f"Resumed from epoch {start_epoch}, best kappa: {best_kappa:.4f}")
     
     # Training loop
-    print("🚀 Starting TransUNet Training...")
-    print(f"📊 Dataset: {len(train_dataset)} train, {len(val_dataset)} val samples")
-    print(f"🖥️  Hardware: {torch.cuda.device_count()} GPU(s), Batch size: {config['data']['batch_size']}")
-    print(f"🧠 Model: {trainable_params:,} parameters")
-    print("=" * 80)
-    
+    print("Starting training...")
     for epoch in range(start_epoch, config['training']['epochs']):
-        epoch_start_time = time.time()
-        
-        print(f"\n🔄 EPOCH {epoch + 1}/{config['training']['epochs']}")
-        print(f"📈 Learning Rate: {optimizer.param_groups[0]['lr']:.6f}")
-        print("-" * 60)
+        print(f"\nEpoch {epoch + 1}/{config['training']['epochs']}")
+        print(f"Learning rate: {optimizer.param_groups[0]['lr']:.6f}")
         
         # Train
         train_loss, train_acc, train_kappa = train_epoch(
@@ -483,21 +419,9 @@ def main():
         # Step scheduler
         scheduler.step()
         
-        # Enhanced epoch summary
-        epoch_time = time.time() - epoch_start_time
-        print(f"\n⏱️  EPOCH {epoch + 1} SUMMARY (Time: {epoch_time:.1f}s):")
-        print(f"   🟢 TRAIN  → Loss: {train_loss:.4f} | Acc: {train_acc:.4f} | Kappa: {train_kappa:.4f}")
-        print(f"   🔵 VALID  → Loss: {val_loss:.4f} | Acc: {val_acc:.4f} | Kappa: {val_kappa:.4f}")
-        
-        # Performance indicators
-        if val_acc > train_acc:
-            print(f"   ⚠️  Overfitting detected (Val Acc > Train Acc)")
-        if val_kappa > 0.5:
-            print(f"   🎯 Good performance! (Kappa > 0.5)")
-        if val_kappa > 0.7:
-            print(f"   🏆 Excellent performance! (Kappa > 0.7)")
-        
-        print("-" * 60)
+        # Print epoch results
+        print(f"Train - Loss: {train_loss:.4f}, Acc: {train_acc:.4f}, Kappa: {train_kappa:.4f}")
+        print(f"Val   - Loss: {val_loss:.4f}, Acc: {val_acc:.4f}, Kappa: {val_kappa:.4f}")
         
         # Save checkpoint
         is_best = val_kappa > best_kappa
@@ -516,12 +440,10 @@ def main():
                 "transunet_best.pth"
             )
             save_checkpoint(model, optimizer, scaler, epoch, val_loss, val_acc, val_kappa, best_path)
-            print(f"   🏅 NEW BEST MODEL! Kappa: {best_kappa:.4f}")
+            print(f"New best model saved! Kappa: {best_kappa:.4f}")
     
     writer.close()
-    print(f"\n🎉 TRAINING COMPLETED!")
-    print(f"🏆 Best Validation Kappa: {best_kappa:.4f}")
-    print("=" * 80)
+    print(f"\nTraining completed! Best validation kappa: {best_kappa:.4f}")
 
 if __name__ == "__main__":
     main()
