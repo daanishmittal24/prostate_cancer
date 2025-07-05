@@ -52,9 +52,9 @@ def create_datasets(config):
     train_df = full_df.iloc[val_size:].reset_index(drop=True)
     val_df = full_df.iloc[:val_size].reset_index(drop=True)
     
-    print(f"Dataset split: {len(train_df)} train samples, {len(val_df)} validation samples")
-    print(f"Train patches: {len(train_df) * config['data'].get('patches_per_image', 16)}")
-    print(f"Val patches: {len(val_df) * config['data'].get('patches_per_image', 16)}")
+    print("Dataset split: {} train samples, {} validation samples".format(len(train_df), len(val_df)))
+    print("Train patches: {}".format(len(train_df) * config['data'].get('patches_per_image', 16)))
+    print("Val patches: {}".format(len(val_df) * config['data'].get('patches_per_image', 16)))
     
     # Create datasets
     train_transforms = get_train_transforms(
