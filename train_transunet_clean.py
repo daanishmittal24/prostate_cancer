@@ -100,7 +100,9 @@ def create_model(config):
         num_heads=model_cfg['num_heads'],
         mlp_ratio=model_cfg.get('mlp_ratio', 4),
         dropout=model_cfg.get('dropout', 0.1),
-        seg_classes=model_cfg.get('seg_classes', 1)
+        seg_classes=model_cfg.get('seg_classes', 1),
+        pretrained=model_cfg.get('pretrained', False),
+        pretrained_path=model_cfg.get('pretrained_path', None)
     )
     return model
 

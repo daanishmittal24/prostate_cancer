@@ -11,6 +11,8 @@ model:
   mlp_ratio: 4
   dropout: 0.1
   seg_classes: 1  # Binary segmentation
+  pretrained: true  # Use ImageNet pre-trained weights
+  pretrained_path: null  # Will use default ViT weights
 
 # Data Configuration
 data:
@@ -19,35 +21,36 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 64  # Increased for better gradient estimates and faster training
-  num_workers: 8   # Increased workers for better data loading
+  batch_size: 64  # Reduced from 128 to prevent OOM with pre-trained weights
+  num_workers: 8   # Reduced workers for stability
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 16  # Increased patches per image
+  patches_per_image: 20  # More patches per image for better representation
   validate_files: true  # Pre-validate files to avoid corrupted images
 
-# Augmentation Configuration - Increased for better learning
+# Augmentation Configuration - More aggressive for better learning
 augmentation:
-  hflip_prob: 0.5  # Increased back to standard
-  vflip_prob: 0.5  # Increased back to standard
-  rotation_range: 10  # Moderate rotation
-  brightness: 0.1  # Increased brightness variation
-  contrast: 0.1    # Increased contrast variation
-  scale_limit: 0.1 # Increased scale variation
-  shift_limit: 0.1 # Increased shift variation
+  hflip_prob: 0.7  # Increased probability
+  vflip_prob: 0.7  # Increased probability
+  rotation_range: 20  # More aggressive rotation
+  brightness: 0.2  # More brightness variation
+  contrast: 0.2    # More contrast variation
+  scale_limit: 0.2 # More scale variation
+  shift_limit: 0.2 # More shift variation
 
 # Training Configuration
 training:
-  epochs: 25  # Extended for better convergence
-  warmup_epochs: 2  # Shorter warmup since we need faster learning
-  lr: 0.001  # 5x increase - more aggressive learning
-  min_lr: 0.0005  # Higher minimum to prevent over-reduction
-  weight_decay: 0.01
+  epochs: 30  # Extended for better convergence
+  warmup_epochs: 3  # Longer warmup for stability
+  lr: 0.0005  # Reduced LR for pre-trained weights (fine-tuning)
+  min_lr: 0.00005  # Adjusted proportionally
+  weight_decay: 0.005  # Reduced weight decay for more aggressive learning
   beta1: 0.9
   beta2: 0.999
-  grad_clip: 1.0  # Increased for higher LR
+  grad_clip: 2.0  # Increased for higher LR
   mixed_precision: false  # Keep disabled for stability
   accumulate_grad_batches: 1
+  label_smoothing: 0.1  # Add label smoothing for better generalization
 
 # Logging Configuration
 logging:

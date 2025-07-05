@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 TransUNet Implementation for Prostate Cancer Detection
@@ -133,7 +132,9 @@ class TransUNet(nn.Module):
         depth: int = 12,
         num_heads: int = 12,
         mlp_ratio: float = 4.0,
-        dropout: float = 0.1
+        dropout: float = 0.1,
+        pretrained: bool = False,
+        pretrained_path: Optional[str] = None
     ):
         super().__init__()
         self.img_size = img_size
@@ -169,6 +170,10 @@ class TransUNet(nn.Module):
         
         # Initialize weights
         self._init_weights()
+        
+        # Load pre-trained weights if specified
+        if pretrained:
+            self._load_pretrained_weights(pretrained_path)
     
     def _build_decoder(self, embed_dim: int, seg_classes: int):
         """Build U-Net style decoder"""
@@ -221,6 +226,62 @@ class TransUNet(nn.Module):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+    
+    def _load_pretrained_weights(self, pretrained_path: Optional[str] = None):
+        """Load pre-trained weights from timm or custom path"""
+        try:
+            import timm
+            print("Loading pre-trained ViT weights from timm...")
+            
+            # Load pre-trained ViT model
+            pretrained_model = timm.create_model('vit_base_patch16_224', pretrained=True)
+            pretrained_dict = pretrained_model.state_dict()
+            
+            # Get current model state dict
+            model_dict = self.state_dict()
+            
+            # Filter out unnecessary keys and match dimensions
+            filtered_dict = {}
+            for k, v in pretrained_dict.items():
+                if k in model_dict and model_dict[k].shape == v.shape:
+                    filtered_dict[k] = v
+                    print(f"Loaded pre-trained weight: {k}")
+                elif k.startswith('head.'):
+                    # Skip classification head (different number of classes)
+                    continue
+                else:
+                    print(f"Skipped pre-trained weight: {k} (shape mismatch or not found)")
+            
+            # Update model dict
+            model_dict.update(filtered_dict)
+            self.load_state_dict(model_dict)
+            print(f"Successfully loaded {len(filtered_dict)} pre-trained weights")
+            
+        except ImportError:
+            print("timm not installed, trying to load from torchvision...")
+            try:
+                import torchvision.models as models
+                
+                # Load pre-trained ResNet as backbone for CNN features
+                resnet = models.resnet50(pretrained=True)
+                
+                # Extract conv1 weights for patch embedding
+                conv1_weight = resnet.conv1.weight.data
+                
+                # Adapt to patch embedding
+                if self.patch_embed.proj.weight.shape == conv1_weight.shape:
+                    self.patch_embed.proj.weight.data = conv1_weight
+                    print("Loaded ResNet conv1 weights for patch embedding")
+                else:
+                    print("ResNet conv1 weights don't match patch embedding dimensions")
+                    
+            except Exception as e:
+                print(f"Failed to load pre-trained weights: {e}")
+                print("Continuing with random initialization...")
+                
+        except Exception as e:
+            print(f"Failed to load pre-trained weights: {e}")
+            print("Continuing with random initialization...")
     
     def forward_features(self, x):
         """Forward through transformer encoder"""
