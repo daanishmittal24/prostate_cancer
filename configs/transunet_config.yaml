@@ -19,11 +19,11 @@ data:
   test_csv: "test.csv"
   train_image_dir: "train_images"
   mask_dir: "train_label_masks"
-  batch_size: 32  # Doubled for better gradient estimates
-  num_workers: 4   # Increased workers
+  batch_size: 64  # Increased for better gradient estimates and faster training
+  num_workers: 8   # Increased workers for better data loading
   pin_memory: true
   persistent_workers: true
-  patches_per_image: 12  # Increased patches per image
+  patches_per_image: 16  # Increased patches per image
   validate_files: true  # Pre-validate files to avoid corrupted images
 
 # Augmentation Configuration - Increased for better learning
@@ -38,10 +38,10 @@ augmentation:
 
 # Training Configuration
 training:
-  epochs: 15  # Extended for better convergence
+  epochs: 25  # Extended for better convergence
   warmup_epochs: 2  # Shorter warmup since we need faster learning
-  lr: 0.0001  # 10x increase - still safe but much more effective
-  min_lr: 0.00001  # Adjusted proportionally
+  lr: 0.001  # 5x increase - more aggressive learning
+  min_lr: 0.0005  # Higher minimum to prevent over-reduction
   weight_decay: 0.01
   beta1: 0.9
   beta2: 0.999
